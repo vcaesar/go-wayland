@@ -1,6 +1,6 @@
 # Wayland implementation in Go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/vcaesar/go-wayland/wayland.svg)](https://pkg.go.dev/github.com/vcaesar/go-wayland/wayland)
+[![Go Reference](https://pkg.go.dev/badge/github.com/vcaesar/go-wayland.svg)](https://pkg.go.dev/github.com/vcaesar/go-wayland)
 
 This module contains pure Go implementation of the Wayland protocol.
 Currently only wayland-client functionality is supported.
@@ -25,5 +25,6 @@ imageviewer file.jpg
 ```
 
 ## Fork
+
 This repository is forked from [github.com/rajveermalviya/go-wayland](https://github.com/rajveermalviya/go-wayland) and includes several fixes and improvements.
 Forked at `0ad78d1`, see [the diff](https://github.com/vcaesar/go-wayland/compare/0ad78d1...main).

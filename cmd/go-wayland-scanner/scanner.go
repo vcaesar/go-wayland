@@ -159,8 +159,8 @@ func main() {
 
 	// Imports
 	if protocol.Name != "wayland" {
-		fmt.Fprintf(w, "import \"github.com/vcaesar/go-wayland/wayland/client\"\n")
-		fmt.Fprintf(w, "import xdg_shell \"github.com/vcaesar/go-wayland/wayland/stable/xdg-shell\"\n")
+		fmt.Fprintf(w, "import \"github.com/vcaesar/go-wayland/client\"\n")
+		fmt.Fprintf(w, "import xdg_shell \"github.com/vcaesar/go-wayland/stable/xdg-shell\"\n")
 	}
 
 	// Intefaces

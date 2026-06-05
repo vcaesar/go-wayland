@@ -1,16 +1,16 @@
 module github.com/vcaesar/go-wayland/cmd/go-wayland-scanner
 
-go 1.19
+go 1.25.0
 
 require (
-	github.com/iancoleman/strcase v0.2.0
-	golang.org/x/crypto v0.30.0
-	golang.org/x/tools v0.5.0
-	mvdan.cc/gofumpt v0.4.0
+	github.com/iancoleman/strcase v0.3.0
+	golang.org/x/crypto v0.52.0
+	golang.org/x/tools v0.45.0
+	mvdan.cc/gofumpt v0.10.0
 )
 
 require (
-	github.com/google/go-cmp v0.5.8 // indirect
-	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 )

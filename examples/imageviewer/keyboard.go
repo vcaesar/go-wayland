@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/vcaesar/go-wayland/wayland/client"
+	"github.com/vcaesar/go-wayland/client"
 	"golang.org/x/sys/unix"
 )
 
