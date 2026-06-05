@@ -3,7 +3,7 @@ package client_test
 import (
 	"errors"
 	"fmt"
-	"github.com/MatthiasKunnen/go-wayland/wayland/client"
+	"github.com/vcaesar/go-wayland/wayland/client"
 	"log"
 )
 

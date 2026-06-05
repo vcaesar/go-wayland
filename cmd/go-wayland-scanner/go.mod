@@ -1,4 +1,4 @@
-module github.com/MatthiasKunnen/go-wayland/cmd/go-wayland-scanner
+module github.com/vcaesar/go-wayland/cmd/go-wayland-scanner
 
 go 1.19
 

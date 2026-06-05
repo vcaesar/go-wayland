@@ -1,6 +1,6 @@
 # Wayland implementation in Go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/MatthiasKunnen/go-wayland/wayland.svg)](https://pkg.go.dev/github.com/MatthiasKunnen/go-wayland/wayland)
+[![Go Reference](https://pkg.go.dev/badge/github.com/vcaesar/go-wayland/wayland.svg)](https://pkg.go.dev/github.com/vcaesar/go-wayland/wayland)
 
 This module contains pure Go implementation of the Wayland protocol.
 Currently only wayland-client functionality is supported.
@@ -19,11 +19,11 @@ cursor themes, pointer and keyboard. Because it's in pure Go, it can be
 compiled without CGO. You can try it using the following commands:
 
 ```sh
-CGO_ENABLED=0 go install github.com/MatthiasKunnen/go-wayland/examples/imageviewer@latest
+CGO_ENABLED=0 go install github.com/vcaesar/go-wayland/examples/imageviewer@latest
 
 imageviewer file.jpg
 ```
 
 ## Fork
 This repository is forked from [github.com/rajveermalviya/go-wayland](https://github.com/rajveermalviya/go-wayland) and includes several fixes and improvements.
-Forked at `0ad78d1`, see [the diff](https://github.com/MatthiasKunnen/go-wayland/compare/0ad78d1...main).
+Forked at `0ad78d1`, see [the diff](https://github.com/vcaesar/go-wayland/compare/0ad78d1...main).
