@@ -1,0 +1,56 @@
+name: golangci-lint
+# Lint the library, examples and scanner modules with the repo's
+# .golangci.yml. A newer run cancels the older one.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: 1.27.x
+  GOLANGCI_LINT_VERSION: v2.14
+  CGO_ENABLED: 0
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
+            cmd/go-wayland-scanner/go.sum
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          install-only: true
+
+      # Each directory is its own module; the root config applies to all.
+      - name: Lint
+        run: |
+          status=0
+          for mod in . examples cmd/go-wayland-scanner; do
+            echo "::group::golangci-lint $mod"
+            (cd "$mod" && golangci-lint run --config "$GITHUB_WORKSPACE/.golangci.yml" ./...) || status=1
+            echo "::endgroup::"
+          done
+          exit $status

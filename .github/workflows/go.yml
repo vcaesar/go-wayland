@@ -1,0 +1,153 @@
+name: Go
+# One run per change: pushes to main and pull requests; a newer run cancels
+# the older one.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Cancel superseded PR runs only; every push to main keeps its result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Jobs only build and test; the token never needs to write.
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: 1.27.x
+  CGO_ENABLED: 0
+
+jobs:
+  # Build, vet and test the three modules: the library (.), the examples and
+  # the scanner. Then run the idlenotifier example against a headless sway
+  # (wlroots) so the generated client code talks to a real compositor.
+  # Also run with the minimum Go version from go.mod.
+  test:
+    name: test (go ${{ matrix.go }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: [go.mod, 1.27.x]
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go != 'go.mod' && matrix.go || '' }}
+          go-version-file: ${{ matrix.go == 'go.mod' && 'go.mod' || '' }}
+          cache-dependency-path: |
+            go.sum
+            examples/go.sum
+            cmd/go-wayland-scanner/go.sum
+
+      - name: gofmt
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then
+            echo "files need gofmt:"; echo "$out"; exit 1
+          fi
+
+      - name: Build, vet and test
+        run: |
+          for mod in . examples cmd/go-wayland-scanner; do
+            echo "::group::$mod"
+            (cd "$mod" && go build ./... && go vet ./... && go test -count=1 ./...)
+            echo "::endgroup::"
+          done
+
+      - name: Install headless sway
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sway
+
+      - name: Smoke test against headless sway
+        run: |
+          export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/tmp/xdg-runtime}
+          mkdir -p -m 700 "$XDG_RUNTIME_DIR"
+          WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman \
+            sway -c /dev/null > sway.log 2>&1 &
+          for _ in $(seq 50); do
+            sock=$(cd "$XDG_RUNTIME_DIR" && ls wayland-[0-9]* 2>/dev/null | grep -v '\.lock$' | head -n1)
+            [ -n "$sock" ] && break
+            sleep 0.2
+          done
+          if [ -z "$sock" ]; then
+            echo "headless sway did not start"; cat sway.log; exit 1
+          fi
+          cd examples
+          go build -o idlenotifier-bin ./idlenotifier
+          WAYLAND_DISPLAY=$sock timeout 60 ./idlenotifier-bin
+
+  # Regenerate every protocol package from its doc.go //go:generate line with
+  # the in-tree scanner and fail if the committed code differs. The scanner
+  # is its own module, so it is built once instead of `go run` per package.
+  generate:
+    name: generated code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: cmd/go-wayland-scanner/go.sum
+
+      - name: Regenerate
+        run: |
+          scanner="$RUNNER_TEMP/go-wayland-scanner"
+          (cd cmd/go-wayland-scanner && go build -o "$scanner" .)
+          prefix='//go:generate go run github.com/vcaesar/go-wayland/cmd/go-wayland-scanner '
+          grep -rl --include=doc.go '^//go:generate' . | sort | while read -r f; do
+            args=$(grep '^//go:generate' "$f" | sed "s#^$prefix##")
+            echo "$(dirname "$f"): $args"
+            (cd "$(dirname "$f")" && eval "\"$scanner\" $args")
+          done
+
+      - name: Check for drift
+        run: |
+          git add -N .
+          if ! git diff --exit-code --stat; then
+            echo "::error::generated code is out of date; regenerate and commit"
+            git diff | head -200
+            exit 1
+          fi
+
+  # The library is pure Go; make sure it keeps building on every Unix
+  # GOOS/GOARCH it can serve (build only).
+  cross:
+    name: cross
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build
+        run: |
+          for target in \
+            linux/amd64 linux/arm64 linux/386 linux/arm linux/riscv64 \
+            linux/ppc64le linux/s390x freebsd/amd64 openbsd/amd64 \
+            netbsd/amd64 darwin/arm64; do
+            echo "$target"
+            GOOS=${target%/*} GOARCH=${target#*/} go build ./...
+          done
