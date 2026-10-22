@@ -191,7 +191,7 @@ func (app *appState) HandlePointerFrame(_ client.PointerFrameEvent) {
 	const axisEvents = pointerEventAxis | pointerEventAxisSource | pointerEventAxisStop | pointerEventAxisDiscrete
 
 	if (e.eventMask & axisEvents) != 0 {
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			if !e.axes[i].valid {
 				continue
 			}

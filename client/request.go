@@ -5,13 +5,24 @@ import (
 	"unsafe"
 )
 
+// WriteMsg writes one message and its fds (as SCM_RIGHTS). It is safe for
+// concurrent use; a short write is completed without resending the fds.
 func (ctx *Context) WriteMsg(b []byte, oob []byte) error {
+	ctx.wmu.Lock()
+	defer ctx.wmu.Unlock()
 	n, oobn, err := ctx.conn.WriteMsgUnix(b, oob, nil)
 	if err != nil {
 		return err
 	}
-	if n != len(b) || oobn != len(oob) {
+	if oobn != len(oob) {
 		return fmt.Errorf("ctx.WriteMsg: incorrect number of bytes written (n=%d oobn=%d)", n, oobn)
+	}
+	for n < len(b) {
+		m, err := ctx.conn.Write(b[n:])
+		if err != nil {
+			return fmt.Errorf("ctx.WriteMsg: %w", err)
+		}
+		n += m
 	}
 
 	return nil

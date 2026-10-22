@@ -6,6 +6,8 @@ v1
 .DS_Store
 .vscode
 .idea
+.codg
+.v0
 
 robot_test.png
 # Examples
@@ -67,3 +69,10 @@ vendor
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
  .glide/
+# Local scratch
+/test/tmp/
+/test/logs/
+# Built binaries
+/cmd/go-wayland-scanner/go-wayland-scanner
+/examples/*/idlenotifier
+/examples/*-bin
