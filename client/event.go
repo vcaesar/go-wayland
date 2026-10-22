@@ -2,89 +2,93 @@ package client
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
-
-	_ "unsafe"
 )
 
-var oobSpace = unix.CmsgSpace(4)
+// maxFds is the most fds one sendmsg may carry (libwayland MAX_FDS_OUT).
+const maxFds = 28
 
+var oobSpace = unix.CmsgSpace(maxFds * 4)
+
+// ReadMsg reads one message. fd is the first queued fd if any fd arrived
+// while reading it, else -1. [Context.GetDispatch] instead hands fds to the
+// events that carry them.
 func (ctx *Context) ReadMsg() (senderID uint32, opcode uint32, fd int, msg []byte, err error) {
+	senderID, opcode, nfds, msg, err := ctx.readMsg()
 	fd = -1
+	if nfds > 0 {
+		fd = ctx.popFd()
+	}
+	return senderID, opcode, fd, msg, err
+}
 
-	oob := make([]byte, oobSpace)
-	header := make([]byte, 8)
-
-	n, oobn, _, _, err := ctx.conn.ReadMsgUnix(header, oob)
+// readMsg reads one whole message, queueing every fd received meanwhile, and
+// returns how many fds arrived with it.
+func (ctx *Context) readMsg() (senderID, opcode uint32, nfds int, msg []byte, err error) {
+	nfds, err = ctx.readFull(ctx.header[:])
 	if err != nil {
-		return senderID, opcode, fd, msg, err
-	}
-	if n != 8 {
-		return senderID, opcode, fd, msg, fmt.Errorf("ctx.ReadMsg: incorrect number of bytes read for header (n=%d)", n)
+		return 0, 0, nfds, nil, fmt.Errorf("ctx.ReadMsg: header: %w", err)
 	}
 
-	if oobn > 0 {
-		fds, err := getFdsFromOob(oob, oobn, "header")
-		if err != nil {
-			return senderID, opcode, fd, msg, fmt.Errorf("ctx.ReadMsg: %w", err)
-		}
-
-		if len(fds) > 0 {
-			fd = fds[0]
-		}
-	}
-
-	senderID = Uint32(header[:4])
-	opcodeAndSize := Uint32(header[4:8])
+	senderID = Uint32(ctx.header[:4])
+	opcodeAndSize := Uint32(ctx.header[4:8])
 	opcode = opcodeAndSize & 0xffff
-	size := opcodeAndSize >> 16
-
-	msgSize := int(size) - 8
-	if msgSize == 0 {
-		return senderID, opcode, fd, nil, nil
+	size := int(opcodeAndSize >> 16)
+	if size < 8 {
+		return senderID, opcode, nfds, nil, fmt.Errorf("ctx.ReadMsg: invalid message size %d", size)
+	}
+	if size == 8 {
+		return senderID, opcode, nfds, nil, nil
 	}
 
-	msg = make([]byte, msgSize)
-
-	if fd == -1 {
-		// if something was read before, then zero it out
-		if oobn > 0 {
-			oob = make([]byte, oobSpace)
-		}
-
-		n, oobn, _, _, err = ctx.conn.ReadMsgUnix(msg, oob)
-	} else {
-		n, err = ctx.conn.Read(msg)
-	}
+	// Not reused: decoded strings alias the message bytes.
+	msg = make([]byte, size-8)
+	n, err := ctx.readFull(msg)
+	nfds += n
 	if err != nil {
-		return senderID, opcode, fd, msg, fmt.Errorf("ctx.ReadMsg: %w", err)
+		return senderID, opcode, nfds, msg, fmt.Errorf("ctx.ReadMsg: body: %w", err)
 	}
-	if n != msgSize {
-		return senderID, opcode, fd, msg, fmt.Errorf("ctx.ReadMsg: incorrect number of bytes read for msg (n=%d, msgSize=%d)", n, msgSize)
-	}
+	return senderID, opcode, nfds, msg, nil
+}
 
-	if fd == -1 && oobn > 0 {
-		fds, err := getFdsFromOob(oob, oobn, "msg")
+// readFull fills b from the socket, appending any received fds to the queue.
+func (ctx *Context) readFull(b []byte) (nfds int, err error) {
+	for len(b) > 0 {
+		n, oobn, flags, _, err := ctx.conn.ReadMsgUnix(b, ctx.oob)
+		if oobn > 0 {
+			fds, perr := getFdsFromOob(ctx.oob, oobn, "msg")
+			if perr != nil {
+				return nfds, perr
+			}
+			ctx.mu.Lock()
+			ctx.fds = append(ctx.fds, fds...)
+			ctx.mu.Unlock()
+			nfds += len(fds)
+		}
 		if err != nil {
-			return senderID, opcode, fd, msg, fmt.Errorf("ctx.ReadMsg: %w", err)
+			return nfds, err
 		}
-
-		if len(fds) > 0 {
-			fd = fds[0]
+		if flags&unix.MSG_CTRUNC != 0 {
+			return nfds, errors.New("file descriptors truncated")
 		}
+		if n == 0 {
+			return nfds, io.ErrUnexpectedEOF
+		}
+		b = b[n:]
 	}
-
-	return senderID, opcode, fd, msg, nil
+	return nfds, nil
 }
 
 func getFdsFromOob(oob []byte, oobn int, source string) ([]int, error) {
 	if oobn > len(oob) {
 		return nil, fmt.Errorf("getFdsFromOob: incorrect number of bytes read from %s for oob (oobn=%d)", source, oobn)
 	}
-	scms, err := unix.ParseSocketControlMessage(oob)
+	scms, err := unix.ParseSocketControlMessage(oob[:oobn])
 	if err != nil {
 		return nil, fmt.Errorf("getFdsFromOob: unable to parse control message from %s: %w", source, err)
 	}
@@ -108,8 +112,9 @@ func Uint32(src []byte) uint32 {
 }
 
 func String(src []byte) string {
-	idx := bytes.IndexByte(src, 0)
-	src = src[:idx:idx]
+	if idx := bytes.IndexByte(src, 0); idx >= 0 {
+		src = src[:idx:idx]
+	}
 	return *(*string)(unsafe.Pointer(&src))
 }
 

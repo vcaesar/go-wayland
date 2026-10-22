@@ -150,9 +150,12 @@ func readFileHeader(f *os.File) (fh fileHeader, ok bool) {
 		return fh, false
 	}
 
+	if header < fileHeaderLen {
+		return fh, false
+	}
 	skip := header - fileHeaderLen
-	if skip == 0 {
-		_, err := f.Seek(int64(skip), os.SEEK_CUR)
+	if skip > 0 {
+		_, err := f.Seek(int64(skip), io.SeekCurrent)
 		if err != nil {
 			return fh, false
 		}

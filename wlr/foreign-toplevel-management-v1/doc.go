@@ -1,0 +1,3 @@
+package wlr_foreign_toplevel_management
+
+//go:generate go run github.com/vcaesar/go-wayland/cmd/go-wayland-scanner -pkg wlr_foreign_toplevel_management -prefix zwlr -suffix v1 -o wlr_foreign_toplevel_management.go -i https://gitlab.freedesktop.org/wlroots/wlr-protocols/-/raw/bf4fc79abc359eea5a0edec0ac6d4a2b2955f82a/unstable/wlr-foreign-toplevel-management-unstable-v1.xml

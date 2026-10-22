@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/vcaesar/go-wayland/examples/imageviewer/internal/swizzle"
-	"github.com/vcaesar/go-wayland/examples/imageviewer/internal/tempfile"
+	"github.com/nfnt/resize"
 	"github.com/vcaesar/go-wayland/client"
 	"github.com/vcaesar/go-wayland/cursor"
+	"github.com/vcaesar/go-wayland/examples/imageviewer/internal/swizzle"
+	"github.com/vcaesar/go-wayland/examples/imageviewer/internal/tempfile"
 	xdg_shell "github.com/vcaesar/go-wayland/stable/xdg-shell"
-	"github.com/nfnt/resize"
 	"golang.org/x/sys/unix"
 )
 
@@ -424,9 +424,8 @@ func (app *appState) cleanup() {
 	}
 
 	if app.compositor != nil {
-		if err := app.compositor.Destroy(); err != nil {
-			logPrintln("unable to destroy wl_compositor:", err)
-		}
+		// wl_compositor.release needs v7; drop the proxy locally instead.
+		app.context().Unregister(app.compositor)
 		app.compositor = nil
 	}
 

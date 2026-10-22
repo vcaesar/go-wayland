@@ -1,3 +1,3 @@
 package xdg_activation
 
-//go:generate go run github.com/vcaesar/go-wayland/cmd/go-wayland-scanner -pkg xdg_activation -prefix xdg -suffix v1 -o xdg_activation.go -i https://gitlab.freedesktop.org/wayland/wayland-protocols/-/raw/1.48/staging/xdg-activation/xdg-activation-v1.xml?ref_type=tags
+//go:generate go run github.com/vcaesar/go-wayland/cmd/go-wayland-scanner -pkg xdg_activation -prefix xdg -suffix v1 -o xdg_activation.go -i https://gitlab.freedesktop.org/wayland/wayland-protocols/-/raw/1.49/staging/xdg-activation/xdg-activation-v1.xml?ref_type=tags
