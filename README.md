@@ -1,5 +1,7 @@
 # Wayland implementation in Go
 
+[![Go](https://github.com/vcaesar/go-wayland/actions/workflows/go.yml/badge.svg)](https://github.com/vcaesar/go-wayland/actions/workflows/go.yml)
+[![golangci-lint](https://github.com/vcaesar/go-wayland/actions/workflows/lint.yml/badge.svg)](https://github.com/vcaesar/go-wayland/actions/workflows/lint.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/vcaesar/go-wayland.svg)](https://pkg.go.dev/github.com/vcaesar/go-wayland)
 
 This module contains pure Go implementation of the Wayland protocol.
