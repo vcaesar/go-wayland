@@ -45,7 +45,7 @@ func TestBGRARandomInput(t *testing.T) {
 	}
 	copy(slowBuf, fastBuf)
 
-	for i := 0; i < 100000; i++ {
+	for i := range 100000 {
 		o := r.Intn(len(fastBuf))
 		n := r.Intn(len(fastBuf)-o) &^ 0x03
 		BGRA(fastBuf[o : o+n])

@@ -15,7 +15,9 @@ golangci-lint run --config "$PWD/.golangci.yml" ./...   # v2 config; run inside 
 ```
 
 - Single test: `go test -count=1 -run TestArrayRequestWire ./unstable/text-input-v3/`
-- CI uses `CGO_ENABLED=0`. Go versions tested: the `go.mod` minimum (1.25.0) and 1.27.x.
+- CI uses `CGO_ENABLED=0`. Go versions tested: the `go.mod` minimum (1.26.0) and 1.27.x.
+- All three modules declare `go 1.26.0`. Bump them together: `examples` pulls the root's deps through `replace`, so after changing the root `go.mod`, run `go mod tidy` in `examples/`. Otherwise its build fails with "updates to go.mod needed".
+- Write modern Go (range-over-int, `min`/`max`, `strings.SplitSeq`, `any`). `go fix -diff ./...` in each module should print nothing, except in generated files. Fix those in the scanner instead.
 - Cross-build check (CI): `GOOS=freebsd GOARCH=amd64 go build ./...` (also openbsd, netbsd, darwin and several linux arches). Keep code Unix-portable and use `golang.org/x/sys/unix`, not Linux-only syscalls.
 
 ## Code generation

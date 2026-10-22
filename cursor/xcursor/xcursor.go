@@ -139,7 +139,7 @@ func LoadTheme(theme string, size int, loadCallback func(name string, images []I
 
 	var inherits string
 
-	for _, path := range strings.Split(libraryPath, ":") {
+	for path := range strings.SplitSeq(libraryPath, ":") {
 		dir := buildThemeDir(path, theme)
 		if dir == "" {
 			continue
@@ -156,7 +156,7 @@ func LoadTheme(theme string, size int, loadCallback func(name string, images []I
 	}
 
 	if inherits != "" {
-		for _, i := range strings.Split(inherits, ":") {
+		for i := range strings.SplitSeq(inherits, ":") {
 			LoadTheme(i, size, loadCallback)
 		}
 	}

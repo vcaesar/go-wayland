@@ -1,5 +1,7 @@
 package cursor
 
+import "strings"
+
 type MultiError struct {
 	errs []error
 }
@@ -20,11 +22,12 @@ func (e *MultiError) Add(err error) {
 
 // Error returns `\n` separated string of all errors.
 func (e *MultiError) Error() string {
-	s := ""
+	var s strings.Builder
 
 	for _, err := range e.errs {
-		s += (err.Error() + "\n")
+		s.WriteString(err.Error())
+		s.WriteByte('\n')
 	}
 
-	return s
+	return s.String()
 }

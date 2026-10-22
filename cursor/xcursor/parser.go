@@ -171,7 +171,7 @@ func readFileHeader(f *os.File) (fh fileHeader, ok bool) {
 	fh.ntoc = ntoc
 	fh.tocs = make([]fileToc, ntoc)
 
-	for n := uint32(0); n < ntoc; n++ {
+	for n := range ntoc {
 		typ, ok := readUint32(f)
 		if !ok {
 			return fh, false
@@ -338,15 +338,9 @@ func readImage(f *os.File, fh fileHeader, toc int) (img Image, ok bool) {
 	}
 
 	// Create image
-	size := height
-	if width > height {
-		size = width
-	}
+	size := max(width, height)
 
-	version := uint32(imageVersion)
-	if ch.version < version {
-		version = ch.version
-	}
+	version := min(ch.version, uint32(imageVersion))
 
 	pixLen := 4 * width * height
 	pixRGBA := make([]byte, pixLen)
@@ -387,7 +381,7 @@ func fileLoadImages(f *os.File, size int) []Image {
 
 	images := make([]Image, nsize)
 
-	for n := 0; n < nsize; n++ {
+	for n := range nsize {
 		toc := findImageToc(fh, bestSize, n)
 		if toc < 0 {
 			return nil
